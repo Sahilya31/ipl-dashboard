@@ -5,7 +5,7 @@ import plotly.express as px
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(page_title="IPL Premium Dashboard", layout="wide")
 
-# Custom CSS for Professional Look
+# Professional UI Styling
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -16,10 +16,9 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ------------------ LOGO & TITLE ------------------
-# Is verified link se logo load ho jayega
 st.markdown("""
     <div class="title-container">
-        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png" width="160">
+        <img src="https://m.media-amazon.com/images/I/41mS7N29yDL.jpg" width="160">
         <div class="title-text">IPL Analytics Dashboard</div>
     </div>
     """, unsafe_allow_html=True)
@@ -35,11 +34,12 @@ def load_data():
 matches, deliveries = load_data()
 
 # ------------------ SIDEBAR ------------------
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png", width=120)
+# Sidebar Logo
+st.sidebar.image("https://m.media-amazon.com/images/I/41mS7N29yDL.jpg", width=120)
 st.sidebar.title("📌 Menu")
 feature = st.sidebar.selectbox("Go to Analysis", ["Overall Stats", "Season Wise Analysis", "Team Performance", "Player Profile"])
 
-# 🏠 FEATURE 1: OVERALL DASHBOARD
+# 🏠 FEATURE 1: OVERALL STATS
 if feature == "Overall Stats":
     st.header("📊 All-Time IPL Statistics")
     
@@ -49,14 +49,12 @@ if feature == "Overall Stats":
     col3.metric("Total Runs Scored", f"{deliveries['total_runs'].sum():,}")
 
     c1, c2 = st.columns(2)
-    # Top Batsmen Bar Chart
     with c1:
         runs = deliveries.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10).reset_index()
         fig1 = px.bar(runs, x='total_runs', y='batter', orientation='h', title="Top 10 Batsmen (All Time)", 
                      color='total_runs', color_continuous_scale='Reds', labels={'total_runs':'Runs', 'batter':'Batsman'})
         st.plotly_chart(fig1, use_container_width=True)
 
-    # Top Wicket Takers Bar Chart
     with c2:
         wickets = deliveries[deliveries['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(10).reset_index()
         wickets.columns = ['bowler', 'wickets']
@@ -64,7 +62,7 @@ if feature == "Overall Stats":
                      color='wickets', color_continuous_scale='Purples', labels={'wickets':'Wickets', 'bowler':'Bowler'})
         st.plotly_chart(fig2, use_container_width=True)
 
-# 📅 FEATURE 2: SEASON WISE ANALYSIS
+# 📅 FEATURE 2: SEASON WISE ANALYSIS (Orange & Purple Cap)
 if feature == "Season Wise Analysis":
     selected_year = st.sidebar.selectbox("Select Season", sorted(matches['season'].unique(), reverse=True))
     st.header(f"🏆 Season {selected_year} - Detailed Analysis")
@@ -73,18 +71,15 @@ if feature == "Season Wise Analysis":
     d_year = deliveries[deliveries['match_id'].isin(m_year['id'])]
 
     c1, c2 = st.columns(2)
-    
-    # Orange Cap
     with c1:
         st.subheader("🟠 Orange Cap Race")
-        oc = d_year.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(5).reset_index()
+        oc = d_year.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10).reset_index()
         fig_oc = px.bar(oc, x='total_runs', y='batter', orientation='h', color='total_runs', color_continuous_scale='Oranges')
         st.plotly_chart(fig_oc, use_container_width=True)
 
-    # Purple Cap
     with c2:
         st.subheader("🟣 Purple Cap Race")
-        pc = d_year[d_year['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(5).reset_index()
+        pc = d_year[d_year['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(10).reset_index()
         pc.columns = ['bowler', 'wickets']
         fig_pc = px.bar(pc, x='wickets', y='bowler', orientation='h', color='wickets', color_continuous_scale='Purples')
         st.plotly_chart(fig_pc, use_container_width=True)
@@ -110,7 +105,6 @@ if feature == "Player Profile":
     
     st.metric(f"Total Career Runs for {player}", total_runs)
     
-    # Yearly performance line chart
     p_runs_year = p_data.merge(matches[['id', 'season']], left_on='match_id', right_on='id')
     yearly_stats = p_runs_year.groupby('season')['total_runs'].sum().reset_index()
     fig_line = px.line(yearly_stats, x='season', y='total_runs', title=f"Yearly Runs Progression: {player}", markers=True)
