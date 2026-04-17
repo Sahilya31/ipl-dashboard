@@ -43,8 +43,8 @@ div.stButton > button {
 st.markdown('<div class="title">🏏 IPL Premium Dashboard</div>', unsafe_allow_html=True)
 
 # ------------------ LOAD DATA ------------------
-matches = pd.read_csv(r"C:\Users\PC\OneDrive\Desktop\matches.csv")
-deliveries = pd.read_csv(r"C:\Users\PC\OneDrive\Desktop\deliveries.csv")
+matches = pd.read_csv("matches.csv")
+deliveries = pd.read_csv("deliveries_small.csv")
 
 # ------------------ CLEAN DATA ------------------
 matches = matches.dropna(subset=['team1','team2','toss_winner','toss_decision','winner'])
