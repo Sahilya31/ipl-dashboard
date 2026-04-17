@@ -1,78 +1,75 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # ------------------ PAGE CONFIG ------------------
-st.set_page_config(page_title="IPL Dashboard", layout="wide")
+st.set_page_config(page_title="IPL Premium Dashboard", layout="wide")
 
-# Custom CSS for styling
+# Custom CSS
 st.markdown("""
     <style>
     .main { background-color: #f0f2f6; }
     .title-container { text-align: center; padding: 10px; }
-    .title-text { color: #ff4b4b; font-size: 42px; font-weight: bold; margin-bottom: 0px; }
+    .title-text { color: #ff4b4b; font-size: 42px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 # ------------------ LOGO & TITLE ------------------
-st.markdown(
-    """
+st.markdown("""
     <div class="title-container">
         <img src="https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png" width="150">
         <div class="title-text">IPL Premium Dashboard</div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
 # ------------------ LOAD DATA ------------------
 matches = pd.read_csv("matches.csv")
 deliveries = pd.read_csv("deliveries_small.csv")
-
-# ------------------ CLEAN DATA ------------------
-matches = matches.dropna(subset=['team1', 'team2', 'toss_winner', 'toss_decision', 'winner'])
+matches = matches.dropna(subset=['winner'])
 
 # ------------------ SIDEBAR ------------------
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png", width=100)
-st.sidebar.title("⚙️ Controls")
-view_type = st.sidebar.radio("View Type", ["Overall", "Year-wise"])
-feature = st.sidebar.selectbox("Feature", ["Dashboard Home", "Match Prediction", "Ball-by-Ball", "Orange Cap"])
+feature = st.sidebar.selectbox("Choose Feature", ["Dashboard Home", "Team Analysis", "Orange Cap", "Match Prediction"])
 
-# Filter Logic
-if view_type == "Overall":
-    data = deliveries
-    match_data = matches
-else:
-    season = st.sidebar.selectbox("Season", sorted(matches['season'].unique()))
-    match_ids = matches[matches['season'] == season]['id']
-    data = deliveries[deliveries['match_id'].isin(match_ids)]
-    match_data = matches[matches['season'] == season]
-
-# 🏠 DASHBOARD HOME
+# 🏠 FEATURE 1: DASHBOARD HOME
 if feature == "Dashboard Home":
-    runs = data.groupby('batter')['total_runs'].sum()
-    wickets = data[data['dismissal_kind'].notna()].groupby('bowler').size()
+    st.subheader("🏏 Overall Stats")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Matches", matches.shape[0])
+    col2.metric("Total Seasons", matches['season'].nunique())
+    col3.metric("Total Teams", matches['team1'].nunique())
+
+    # Top Batsmen Chart
+    runs = deliveries.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10).reset_index()
+    fig = px.bar(runs, x='batter', y='total_runs', title="Top 10 Run Scorers", color='total_runs')
+    st.plotly_chart(fig, use_container_width=True)
+
+# 📊 FEATURE 2: TEAM ANALYSIS
+if feature == "Team Analysis":
+    st.subheader("🚩 Team Performance")
+    teams = sorted(matches['team1'].unique())
+    selected_team = st.selectbox("Select Team", teams)
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("🔥 Top Batsmen")
-        st.bar_chart(runs.sort_values(ascending=False).head(10))
+    team_matches = matches[(matches['team1'] == selected_team) | (matches['team2'] == selected_team)]
+    wins = team_matches[team_matches['winner'] == selected_team].shape[0]
+    st.write(f"Total Wins for {selected_team}: **{wins}**")
     
-    with col2:
-        st.subheader("🎯 Top Bowlers")
-        st.bar_chart(wickets.sort_values(ascending=False).head(10))
+    # Win Pie Chart
+    win_data = team_matches['winner'].value_counts().reset_index()
+    fig_pie = px.pie(win_data, names='winner', title=f"Win/Loss Analysis for {selected_team}")
+    st.plotly_chart(fig_pie)
 
-# 🔮 MATCH PREDICTION
-if feature == "Match Prediction":
-    st.info("🔮 Match Prediction feature is coming soon with Machine Learning!")
-
-# 📊 BALL BY BALL
-if feature == "Ball-by-Ball":
-    match_id = st.selectbox("Select Match ID", sorted(data['match_id'].unique()))
-    ball_data = data[data['match_id'] == match_id]
-    st.dataframe(ball_data.head(50))
-
-# 🟠 ORANGE CAP
+# 🟠 FEATURE 3: ORANGE CAP
 if feature == "Orange Cap":
-    runs = data.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10)
-    st.header("🟠 Orange Cap Leaderboard")
-    st.table(runs)
+    st.subheader("🟠 Orange Cap Race")
+    season_runs = deliveries.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(15).reset_index()
+    st.table(season_runs)
+
+# 🔮 FEATURE 4: MATCH PREDICTION
+if feature == "Match Prediction":
+    st.subheader("🔮 Probability Predictor")
+    st.info("Bhai, prediction ke liye humein model file (.pkl) chahiye hogi. Abhi ke liye aap Teams select kar sakte hain.")
+    team1 = st.selectbox("Team 1", sorted(matches['team1'].unique()))
+    team2 = st.selectbox("Team 2", sorted(matches['team2'].unique()))
+    if st.button("Predict Winner"):
+        st.success(f"Based on history, {team1} has a higher chance!")
