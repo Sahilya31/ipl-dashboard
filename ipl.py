@@ -33,18 +33,21 @@ st.markdown(f"""
 @st.cache_data
 def load_data():
     try:
+        # Files should be in the same folder as ipl.py
         m = pd.read_csv("matches.csv")
         d = pd.read_csv("deliveries_small.csv")
         m = m.dropna(subset=['winner'])
         return m, d
     except Exception as e:
-        st.error(f"Data Load Error: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
 matches, deliveries = load_data()
 
+# ------------------ DATA VALIDATION ------------------
 if matches.empty or deliveries.empty:
-    st.warning("⚠️ Bhai, data files nahi mil rahi hain. Check karo matches.csv aur deliveries_small.csv GitHub par hain?")
+    st.error("### ⚠️ Data Missing!")
+    st.write("Bhai, `matches.csv` aur `deliveries_small.csv` file nahi mil rahi.")
+    st.info("💡 **Solution:** GitHub par jahan `ipl.py` hai, wahan ye dono files upload karo.")
     st.stop()
 
 # ------------------ SIDEBAR ------------------
