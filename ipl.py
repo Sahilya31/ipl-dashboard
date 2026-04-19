@@ -1,97 +1,110 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 # ------------------ PAGE CONFIG ------------------
-st.set_page_config(page_title="IPL Elite Neon Dashboard", layout="wide")
+st.set_page_config(page_title="IPL Premium Dashboard", layout="wide")
 
-# ✨ ADVANCED GLASS UI & NEON STYLING
+# Custom CSS for better UI
 st.markdown("""
     <style>
-    .stApp { background: radial-gradient(circle at top left, #1a1c2c, #0b0e14); color: #ffffff; }
-    .title-container { 
-        text-align: center; padding: 40px; 
-        background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 20px;
-        box-shadow: 0 0 30px rgba(0, 210, 255, 0.1); margin-bottom: 35px;
-    }
-    .title-text { 
-        background: linear-gradient(90deg, #00d2ff, #3a7bd5, #ff4b4b);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-size: 55px; font-weight: 900; letter-spacing: 2px;
-    }
-    /* Chart Container Styling */
-    .plot-container { border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px; background: rgba(0,0,0,0.2); }
+    .main { background-color: #f0f2f6; }
+    .title-container { text-align: center; padding: 10px; border-bottom: 2px solid #ff4b4b; margin-bottom: 20px; }
+    .title-text { color: #ff4b4b; font-size: 45px; font-weight: bold; }
     </style>
+    """, unsafe_allow_html=True)
+
+# ------------------ LOGO & TITLE ------------------
+st.markdown("""
+    <div class="title-container">
+        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png" width="150">
+        <div class="title-text">IPL Analytics Dashboard</div>
+    </div>
     """, unsafe_allow_html=True)
 
 # ------------------ LOAD DATA ------------------
 @st.cache_data
 def load_data():
-    try:
-        m = pd.read_csv("matches.csv")
-        d = pd.read_csv("deliveries_small.csv")
-        m = m.dropna(subset=['winner'])
-        return m, d
-    except: return pd.DataFrame(), pd.DataFrame()
+    m = pd.read_csv("matches.csv")
+    d = pd.read_csv("deliveries_small.csv")
+    m = m.dropna(subset=['winner'])
+    return m, d
 
 matches, deliveries = load_data()
 
-# ------------------ LOGO & TITLE ------------------
-logo_url = "https://m.media-amazon.com/images/I/41mS7N29yDL.jpg"
-st.markdown(f"""
-    <div class="title-container">
-        <img src="{logo_url}" width="130" style="border-radius: 50%; box-shadow: 0 0 25px #00d2ff;">
-        <div class="title-text">IPL ELITE NEON INTELLIGENCE</div>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ------------------ SIDEBAR ------------------
-feature = st.sidebar.radio("Navigate Analysis", ["📈 Global Insights", "🏆 Season Mastery", "👤 Player Profiles"])
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Indian_Premier_League_Official_Logo.svg/1200px-Indian_Premier_League_Official_Logo.svg.png", width=100)
+st.sidebar.title("Navigation")
+feature = st.sidebar.selectbox("Choose Analysis", ["Overall Dashboard", "Season Wise Analysis", "Team Analysis", "Player Stats"])
 
-# 📈 GLOBAL INSIGHTS (With Enhanced Graphs)
-if feature == "📈 Global Insights":
-    st.header("🌍 League Performance Intelligence")
+# 🏠 FEATURE 1: OVERALL DASHBOARD
+if feature == "Overall Dashboard":
+    st.header("🏏 IPL Overall Stats (All Seasons)")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        # Top Batsmen with Neon Gradient
-        runs = deliveries.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10).reset_index()
-        fig1 = px.bar(runs, x='total_runs', y='batter', orientation='h', 
-                     title="All-Time Leading Scorers", template="plotly_dark",
-                     color='total_runs', color_continuous_scale='Blues')
-        
-        # PRO GRAPHICS SETTINGS
-        fig1.update_traces(marker_line_color='rgb(0, 210, 255)', marker_line_width=1.5, opacity=0.8)
-        fig1.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                          xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
-        st.plotly_chart(fig1, use_container_width=True)
-            
-    with col2:
-        # Top Bowlers with Neon Red
-        wickets = deliveries[deliveries['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(10).reset_index()
-        wickets.columns = ['bowler', 'wickets']
-        fig2 = px.bar(wickets, x='wickets', y='bowler', orientation='h', 
-                     title="Leading Wicket Takers", template="plotly_dark",
-                     color='wickets', color_continuous_scale='Reds')
-        
-        fig2.update_traces(marker_line_color='rgb(255, 75, 75)', marker_line_width=1.5, opacity=0.8)
-        fig2.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                          xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
-        st.plotly_chart(fig2, use_container_width=True)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Matches", matches.shape[0])
+    col2.metric("Total Teams", matches['team1'].nunique())
+    col3.metric("Total Runs", deliveries['total_runs'].sum())
 
-# 👤 PLAYER PROFILES (With Area Curves)
-if feature == "👤 Player Profiles":
-    player = st.selectbox("Search Player", sorted(deliveries['batter'].unique()))
-    p_data = deliveries[deliveries['batter'] == player].merge(matches[['id', 'season']], left_on='match_id', right_on='id')
-    yearly = p_data.groupby('season')['total_runs'].sum().reset_index()
+    # Top Run Scorers Bar Chart
+    runs = deliveries.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(10).reset_index()
+    fig1 = px.bar(runs, x='batter', y='total_runs', title="Top 10 Batsmen of All Time", color='total_runs', color_continuous_scale='Reds')
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # Top Wicket Takers Bar Chart
+    wickets = deliveries[deliveries['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(10).reset_index()
+    wickets.columns = ['bowler', 'wickets']
+    fig2 = px.bar(wickets, x='bowler', y='wickets', title="Top 10 Bowlers of All Time", color='wickets', color_continuous_scale='Purples')
+    st.plotly_chart(fig2, use_container_width=True)
+
+# 📅 FEATURE 2: SEASON WISE ANALYSIS
+if feature == "Season Wise Analysis":
+    selected_year = st.sidebar.selectbox("Select Season", sorted(matches['season'].unique(), reverse=True))
+    st.header(f"🏆 Season {selected_year} Analysis")
+
+    # Filter data
+    m_year = matches[matches['season'] == selected_year]
+    d_year = deliveries[deliveries['match_id'].isin(m_year['id'])]
+
+    c1, c2 = st.columns(2)
     
-    # Smooth Area Chart
-    fig_line = px.area(yearly, x='season', y='total_runs', title=f"{player} Career Progression", 
-                      template="plotly_dark")
+    # Orange Cap
+    with c1:
+        st.subheader("🟠 Orange Cap Race")
+        oc = d_year.groupby('batter')['total_runs'].sum().sort_values(ascending=False).head(5).reset_index()
+        fig_oc = px.bar(oc, x='total_runs', y='batter', orientation='h', color='total_runs', color_continuous_scale='Oranges')
+        st.plotly_chart(fig_oc, use_container_width=True)
+
+    # Purple Cap
+    with c2:
+        st.subheader("🟣 Purple Cap Race")
+        pc = d_year[d_year['dismissal_kind'].notna()].groupby('bowler').size().sort_values(ascending=False).head(5).reset_index()
+        pc.columns = ['bowler', 'wickets']
+        fig_pc = px.bar(pc, x='wickets', y='bowler', orientation='h', color='wickets', color_continuous_scale='Purples')
+        st.plotly_chart(fig_pc, use_container_width=True)
+
+# 🚩 FEATURE 3: TEAM ANALYSIS
+if feature == "Team Analysis":
+    team = st.selectbox("Select Team", sorted(matches['team1'].unique()))
+    st.header(f"Performance of {team}")
     
-    fig_line.update_traces(line_color='#00d2ff', fillcolor='rgba(0, 210, 255, 0.2)', marker=dict(size=8))
-    fig_line.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                          xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
-    st.plotly_chart(fig_line, use_container_width=True)
+    team_data = matches[(matches['team1'] == team) | (matches['team2'] == team)]
+    wins = team_data[team_data['winner'] == team].shape[0]
+    losses = team_data.shape[0] - wins
+    
+    # Win-Loss Pie Chart
+    fig_pie = px.pie(values=[wins, losses], names=['Wins', 'Losses'], title=f"Win vs Loss for {team}", color_discrete_sequence=['#2ecc71', '#e74c3c'])
+    st.plotly_chart(fig_pie)
+
+# 👤 FEATURE 4: PLAYER STATS
+if feature == "Player Stats":
+    player = st.selectbox("Select Batsman", sorted(deliveries['batter'].unique()))
+    p_data = deliveries[deliveries['batter'] == player]
+    total_p_runs = p_data['total_runs'].sum()
+    st.metric(f"Total Runs for {player}", total_p_runs)
+    
+    # Season-wise runs for player
+    p_runs_year = deliveries[deliveries['batter'] == player].merge(matches[['id', 'season']], left_on='match_id', right_on='id')
+    yearly_stats = p_runs_year.groupby('season')['total_runs'].sum().reset_index()
+    fig_line = px.line(yearly_stats, x='season', y='total_runs', title=f"Performance Graph: {player}")
+    st.plotly_chart(fig_line)
